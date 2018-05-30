@@ -317,7 +317,7 @@ void post_save(int fd, char *body)
  * "Newlines" in HTTP can be \r\n (carriage return followed by newline) or \n
  * (newline) or \r (carriage return).
  */
-char *find_end_of_header(char *header)
+char *find_start_of_body(char *header)
 {
   char *p;
 
@@ -368,7 +368,7 @@ void handle_http_request(int fd)
   char *header = p + 1; // +1 to skip the '\n'
 
   // Look for two newlines marking the end of the header
-  p = find_end_of_header(header);
+  p = find_start_of_body(header);
 
   if (p == NULL) {
     printf("Could not find end of header\n");
