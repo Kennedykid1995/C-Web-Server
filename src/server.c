@@ -306,7 +306,7 @@ void post_save(int fd, char *body)
 
   char response_body[128];
 
-  sprintf(response_body, "{\"status\": \"%s\"}", status);
+  sprintf(response_body, "{\"status\": \"%s\"}\n", status);
 
   send_response(fd, "HTTP/1.1 200 OK", "application/json", response_body);
 }
