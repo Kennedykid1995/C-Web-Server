@@ -199,17 +199,17 @@ int send_response(int fd, char *header, char *content_type, char *body)
 
   int response_length = sprintf(response,
     "%s\n"
-    "Content-Length: %d\n"
-    "Content-Type: %s\n"
     "Date: %s" // asctime adds its own newline
     "Connection: close\n"
+    "Content-Length: %d\n"
+    "Content-Type: %s\n"
     "\n" // End of HTTP header
-    "%s",
+    "%s\n",
 
     header,
+    asctime(ltime),
     content_length,
     content_type,
-    asctime(ltime),
     body);
 
   // Send it all!
@@ -240,7 +240,7 @@ void resp_404(int fd, char *path)
  */
 void get_root(int fd)
 {
-  char *response_body = "<html><head></head><body><h1>Hello, World!</h1></body></html>";
+  char *response_body = "<html><head></head><body><h1>Hello, World!</h1></body></html>\n";
 
   send_response(fd, "HTTP/1.1 200 OK", "text/html", response_body);
 }
@@ -253,7 +253,7 @@ void get_d20(int fd)
   srand(time(NULL) + getpid());
 
   char response_body[8];
-  sprintf(response_body, "%d", (rand()%20)+1);
+  sprintf(response_body, "%d\n", (rand()%20)+1);
 
   send_response(fd, "HTTP/1.1 200 OK", "text/plain", response_body);
 }
