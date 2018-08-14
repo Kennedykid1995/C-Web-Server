@@ -357,18 +357,8 @@ void handle_http_request(int fd)
    // NUL terminate request string
   request[bytes_recvd] = '\0';
 
-  // Parse the first line of the request
-  char *first_line = request;
-
-  // Look for newline
-  p = strchr(first_line, '\n');
-  *p = '\0';
-
-  // Remaining header
-  char *header = p + 1; // +1 to skip the '\n'
-
   // Look for two newlines marking the end of the header
-  p = find_start_of_body(header);
+  p = find_start_of_body(request);
 
   if (p == NULL) {
     printf("Could not find end of header\n");
@@ -383,7 +373,7 @@ void handle_http_request(int fd)
   */
 
   // Read the three components of the first request line
-  sscanf(first_line, "%s %s %s", request_type, request_path,
+  sscanf(request, "%s %s %s", request_type, request_path,
     request_protocol);
 
   printf("REQUEST: %s %s %s\n", request_type, request_path, request_protocol);
