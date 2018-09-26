@@ -1,4 +1,4 @@
-OBJS=server.o net.o file.o mime.o
+OBJS=server.o net.o file.o mime.o cache.o hashtable.o llist.o
 
 server: $(OBJS)
 	gcc -Wall -Wextra -g -o $@ $^
@@ -13,6 +13,15 @@ file.o: file.c file.h
 	gcc -Wall -Wextra -c $<
 
 mime.o: mime.c mime.h
+	gcc -Wall -Wextra -c $<
+
+cache.o: cache.c cache.h
+	gcc -Wall -Wextra -c $<
+
+hashtable.o: hashtable.c hashtable.h
+	gcc -Wall -Wextra -c $<
+
+llist.o: llist.c llist.h
 	gcc -Wall -Wextra -c $<
 
 .PHONY: clean
