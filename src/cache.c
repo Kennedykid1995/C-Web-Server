@@ -172,3 +172,16 @@ struct cache_entry *cache_get(struct cache *cache, char *path)
 
     return ce;
 }
+
+/**
+ * Remove an item from the cache
+ */
+int cache_remove(struct cache *cache, char *path)
+{
+    // TODO
+
+    (void)cache; // silence ununsed var warnings
+    (void)path;
+
+    return 0;
+}

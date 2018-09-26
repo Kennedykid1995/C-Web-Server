@@ -26,8 +26,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <sys/wait.h>
-#include <signal.h>
 #include <time.h>
 #include <sys/file.h>
 #include <fcntl.h>
@@ -40,50 +38,6 @@
 
 #define SERVER_FILES "./serverfiles"
 #define SERVER_ROOT "./serverroot"
-
-/**
- * Handle SIGCHILD signal
- *
- * We get this signal when a child process dies. This function wait()s for
- * Zombie processes.
- *
- * This is only necessary if we've implemented a multiprocessed version with
- * fork().
- */
-void sigchld_handler(int s) {
-    (void)s; // quiet unused variable warning
-
-    // waitpid() might overwrite errno, so we save and restore it:
-    int saved_errno = errno;
-
-    // Wait for all children that have died, discard the exit status
-    while(waitpid(-1, NULL, WNOHANG) > 0);
-
-    errno = saved_errno;
-}
-
-/**
- * Set up a signal handler that listens for child processes to die so
- * they can be reaped with wait()
- *
- * Whenever a child process dies, the parent process gets signal
- * SIGCHLD; the handler sigchld_handler() takes care of wait()ing.
- * 
- * This is only necessary if we've implemented a multiprocessed version with
- * fork().
- */
-void start_reaper(void)
-{
-    struct sigaction sa;
-
-    sa.sa_handler = sigchld_handler; // Reap all dead processes
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART; // Restart signal handler if interrupted
-    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-        perror("sigaction");
-        exit(1);
-    }
-}
 
 /**
  * Send an HTTP response
@@ -168,36 +122,65 @@ void resp_404(int fd)
 }
 
 /**
- * Read and return a file
+ * Read and return a cache entry or file
  */
-void get_file(int fd, char *request_path)
+int get_file_or_cache(int fd, struct cache *cache, char *filepath)
 {
-    char filepath[4096];
     struct file_data *filedata; 
+    struct cache_entry *cacheent;
     char *mime_type;
 
     // Try to find the file
-    snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
-    filedata = file_load(filepath);
+    cacheent = cache_get(cache, filepath);
 
-    if (filedata == NULL) {
-        // If we can't find it, try with an index.html on the end
-        snprintf(filepath, sizeof filepath, "%s%s/index.html", SERVER_ROOT, request_path);
+    if (cacheent != NULL) {
+        // Found it in the cache
+
+        // TODO: remove and ignore the cache entry if it's too old
+
+        send_response(fd, "HTTP/1.1 200 OK",  cacheent->content_type, cacheent->content, cacheent->content_length);
+
+    } else {
         filedata = file_load(filepath);
 
         if (filedata == NULL) {
+            return -1; // failure
+        }
+
+        mime_type = mime_type_get(filepath);
+
+        send_response(fd, "HTTP/1.1 200 OK",  mime_type, filedata->data, filedata->size);
+
+        // Save it for next time
+        cache_put(cache, filepath, mime_type, filedata->data, filedata->size);
+
+        file_free(filedata);
+    }
+
+    return 0; // success
+}
+
+/**
+ * Read and return a file
+ */
+void get_file(int fd, struct cache *cache, char *request_path)
+{
+    char filepath[4096];
+    int status;
+
+    // Try to find the file
+    snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
+    status = get_file_or_cache(fd, cache, filepath);
+
+    if (status == -1) {
+        snprintf(filepath, sizeof filepath, "%s%s/index.html", SERVER_ROOT, request_path);
+        status = get_file_or_cache(fd, cache, filepath);
+
+        if (status == -1) {
             resp_404(fd);
             return;
         }
     }
-
-    // At this point, we've loaded a file from somewhere or died trying
-
-    mime_type = mime_type_get(filepath);
-
-    send_response(fd, "HTTP/1.1 200 OK",  mime_type, filedata->data, filedata->size);
-
-    file_free(filedata);
 }
 
 /**
@@ -265,7 +248,7 @@ char *find_start_of_body(char *header)
 /**
  * Handle HTTP request and send response
  */
-void handle_http_request(int fd)
+void handle_http_request(int fd, struct cache *cache)
 {
     const int request_buffer_size = 65536; // 64K
     char request[request_buffer_size];
@@ -313,7 +296,7 @@ void handle_http_request(int fd)
             get_d20(fd);
         } else {
             // Otherwise try to get a file
-            get_file(fd, request_path);
+            get_file(fd, cache, request_path);
         }
     }
 
@@ -342,8 +325,7 @@ int main(void)
     struct sockaddr_storage their_addr; // connector's address information
     char s[INET6_ADDRSTRLEN];
 
-    // Start reaping child processes
-    start_reaper();
+    struct cache *cache = cache_create(10, 0);
 
     // Get a listening socket
     int listenfd = get_listener_socket(PORT);
@@ -379,31 +361,8 @@ int main(void)
         // newfd is a new socket descriptor for the new connection.
         // listenfd is still listening for new connections.
 
-        // For the non-fork() solution, remove this block of code and replace it with the one liner:
-        //
-        //     handle_http_request(newfd);
-        //
-        if (fork() == 0) {
-            // We're the child process
+        handle_http_request(newfd, cache);
 
-            // We don't need the listening socket. The parent
-            // process's listenfd is still open--we just close it in the
-            // child.
-            close(listenfd);
-
-            // This does the heavy lifting, recv() the HTTP request and
-            // send() the HTTP response.
-            handle_http_request(newfd);
-
-            // And this child is done! Bye bye!
-            exit(0);
-        }
-
-        // Parent process out here, still
-
-        // Parent doesn't need this. We need to close them as we get
-        // them so we don't fill up the parent's file descriptor table.
-        // The child's copy of newfd remains open.
         close(newfd);
     }
 
