@@ -45,15 +45,15 @@
  * fork().
  */
 void sigchld_handler(int s) {
-  (void)s; // quiet unused variable warning
+    (void)s; // quiet unused variable warning
 
-  // waitpid() might overwrite errno, so we save and restore it:
-  int saved_errno = errno;
+    // waitpid() might overwrite errno, so we save and restore it:
+    int saved_errno = errno;
 
-  // Wait for all children that have died, discard the exit status
-  while(waitpid(-1, NULL, WNOHANG) > 0);
+    // Wait for all children that have died, discard the exit status
+    while(waitpid(-1, NULL, WNOHANG) > 0);
 
-  errno = saved_errno;
+    errno = saved_errno;
 }
 
 /**
@@ -68,15 +68,15 @@ void sigchld_handler(int s) {
  */
 void start_reaper(void)
 {
-  struct sigaction sa;
+    struct sigaction sa;
 
-  sa.sa_handler = sigchld_handler; // Reap all dead processes
-  sigemptyset(&sa.sa_mask);
-  sa.sa_flags = SA_RESTART; // Restart signal handler if interrupted
-  if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-    perror("sigaction");
-    exit(1);
-  }
+    sa.sa_handler = sigchld_handler; // Reap all dead processes
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART; // Restart signal handler if interrupted
+    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+        perror("sigaction");
+        exit(1);
+    }
 }
 
 /**
@@ -90,39 +90,39 @@ void start_reaper(void)
  */
 int send_response(int fd, char *header, char *content_type, char *body)
 {
-  const int max_response_size = 65536;
-  char response[max_response_size];
+    const int max_response_size = 65536;
+    char response[max_response_size];
 
-  // Get current time for the HTTP header
-  time_t t1 = time(NULL);
-  struct tm *ltime = localtime(&t1);
+    // Get current time for the HTTP header
+    time_t t1 = time(NULL);
+    struct tm *ltime = localtime(&t1);
 
-  // How many bytes in the body
-  int content_length = strlen(body);
+    // How many bytes in the body
+    int content_length = strlen(body);
 
-  int response_length = sprintf(response,
-    "%s\n"
-    "Date: %s" // asctime adds its own newline
-    "Connection: close\n"
-    "Content-Length: %d\n"
-    "Content-Type: %s\n"
-    "\n" // End of HTTP header
-    "%s\n",
+    int response_length = sprintf(response,
+        "%s\n"
+        "Date: %s" // asctime adds its own newline
+        "Connection: close\n"
+        "Content-Length: %d\n"
+        "Content-Type: %s\n"
+        "\n" // End of HTTP header
+        "%s\n",
 
-    header,
-    asctime(ltime),
-    content_length,
-    content_type,
-    body);
+        header,
+        asctime(ltime),
+        content_length,
+        content_type,
+        body);
 
-  // Send it all!
-  int rv = send(fd, response, response_length, 0);
+    // Send it all!
+    int rv = send(fd, response, response_length, 0);
 
-  if (rv < 0) {
-    perror("send");
-  }
+    if (rv < 0) {
+        perror("send");
+    }
 
-  return rv;
+    return rv;
 }
 
 
@@ -131,11 +131,11 @@ int send_response(int fd, char *header, char *content_type, char *body)
  */
 void resp_404(int fd, char *path)
 {
-  char response_body[1024];
+    char response_body[1024];
 
-  sprintf(response_body, "404: %s not found", path);
+    sprintf(response_body, "404: %s not found", path);
 
-  send_response(fd, "HTTP/1.1 404 NOT FOUND", "text/html", response_body);
+    send_response(fd, "HTTP/1.1 404 NOT FOUND", "text/html", response_body);
 }
 
 /**
@@ -143,9 +143,9 @@ void resp_404(int fd, char *path)
  */
 void get_root(int fd)
 {
-  char *response_body = "<html><head></head><body><h1>Hello, World!</h1></body></html>\n";
+    char *response_body = "<html><head></head><body><h1>Hello, World!</h1></body></html>\n";
 
-  send_response(fd, "HTTP/1.1 200 OK", "text/html", response_body);
+    send_response(fd, "HTTP/1.1 200 OK", "text/html", response_body);
 }
 
 /**
@@ -153,12 +153,12 @@ void get_root(int fd)
  */
 void get_d20(int fd)
 {
-  srand(time(NULL) + getpid());
+    srand(time(NULL) + getpid());
 
-  char response_body[8];
-  sprintf(response_body, "%d\n", (rand()%20)+1);
+    char response_body[8];
+    sprintf(response_body, "%d\n", (rand()%20)+1);
 
-  send_response(fd, "HTTP/1.1 200 OK", "text/plain", response_body);
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain", response_body);
 }
 
 /**
@@ -166,13 +166,13 @@ void get_d20(int fd)
  */
 void get_date(int fd)
 {
-  char response_body[128];
-  time_t t1 = time(NULL);
-  struct tm *gtime = gmtime(&t1);
+    char response_body[128];
+    time_t t1 = time(NULL);
+    struct tm *gtime = gmtime(&t1);
 
-  sprintf(response_body, "%s", asctime(gtime));
+    sprintf(response_body, "%s", asctime(gtime));
 
-  send_response(fd, "HTTP/1.1 200 OK", "text/plain", response_body);
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain", response_body);
 }
 
 /**
@@ -180,38 +180,38 @@ void get_date(int fd)
  */
 void post_save(int fd, char *body)
 {
-  char *status;
+    char *status;
 
-  // Open the file
-  int file_fd = open("data.txt", O_CREAT|O_WRONLY, 0644);
+    // Open the file
+    int file_fd = open("data.txt", O_CREAT|O_WRONLY, 0644);
 
-  if (file_fd >= 0) {
-    // Exclusive lock to keep processes from trying to write the file at the
-    // same time. This is only necessary if we've implemented a
-    // multiprocessed version with fork().
-    flock(file_fd, LOCK_EX);
+    if (file_fd >= 0) {
+        // Exclusive lock to keep processes from trying to write the file at the
+        // same time. This is only necessary if we've implemented a
+        // multiprocessed version with fork().
+        flock(file_fd, LOCK_EX);
 
-    // Write body
-    write(file_fd, body, strlen(body));
+        // Write body
+        write(file_fd, body, strlen(body));
 
-    // Unlock
-    flock(file_fd, LOCK_UN);
+        // Unlock
+        flock(file_fd, LOCK_UN);
 
-    // Close
-    close(file_fd);
+        // Close
+        close(file_fd);
 
-    status = "ok";
-  } else {
-    status = "fail";
-  }
+        status = "ok";
+    } else {
+        status = "fail";
+    }
 
-  // Now send an HTTP response
+    // Now send an HTTP response
 
-  char response_body[128];
+    char response_body[128];
 
-  sprintf(response_body, "{\"status\": \"%s\"}\n", status);
+    sprintf(response_body, "{\"status\": \"%s\"}\n", status);
 
-  send_response(fd, "HTTP/1.1 200 OK", "application/json", response_body);
+    send_response(fd, "HTTP/1.1 200 OK", "application/json", response_body);
 }
 
 /**
@@ -222,19 +222,19 @@ void post_save(int fd, char *body)
  */
 char *find_start_of_body(char *header)
 {
-  char *p;
+    char *p;
 
-  p = strstr(header, "\n\n");
+    p = strstr(header, "\n\n");
 
-  if (p != NULL) return p;
+    if (p != NULL) return p;
 
-  p = strstr(header, "\r\n\r\n");
+    p = strstr(header, "\r\n\r\n");
 
-  if (p != NULL) return p;
+    if (p != NULL) return p;
 
-  p = strstr(header, "\r\r");
+    p = strstr(header, "\r\r");
 
-  return p;
+    return p;
 }
 
 /**
@@ -242,81 +242,81 @@ char *find_start_of_body(char *header)
  */
 void handle_http_request(int fd)
 {
-  const int request_buffer_size = 65536; // 64K
-  char request[request_buffer_size];
-  char *p;
-  char request_type[8]; // GET or POST
-  char request_path[1024]; // /info etc.
-  char request_protocol[128]; // HTTP/1.1
+    const int request_buffer_size = 65536; // 64K
+    char request[request_buffer_size];
+    char *p;
+    char request_type[8]; // GET or POST
+    char request_path[1024]; // /info etc.
+    char request_protocol[128]; // HTTP/1.1
 
-  // Read request
-  int bytes_recvd = recv(fd, request, request_buffer_size - 1, 0);
+    // Read request
+    int bytes_recvd = recv(fd, request, request_buffer_size - 1, 0);
 
-  if (bytes_recvd < 0) {
-    perror("recv");
-    return;
-  }
-
-   // NUL terminate request string
-  request[bytes_recvd] = '\0';
-
-  // Look for two newlines marking the end of the header
-  p = find_start_of_body(request);
-
-  if (p == NULL) {
-    printf("Could not find end of header\n");
-    exit(1);
-  }
-
-  // And here is the body
-  char *body = p;
-
-  /*
-  * Now that we've assessed the request, we can take actions.
-  */
-
-  // Read the three components of the first request line
-  sscanf(request, "%s %s %s", request_type, request_path,
-    request_protocol);
-
-  printf("REQUEST: %s %s %s\n", request_type, request_path, request_protocol);
-
-  if (strcmp(request_type, "GET") == 0) {
-
-    // Endpoint "/"
-    if (strcmp(request_path, "/") == 0) {
-      get_root(fd);
+    if (bytes_recvd < 0) {
+        perror("recv");
+        return;
     }
 
-    // Endpoint "/d20"
-    else if (strcmp(request_path, "/d20") == 0) {
-      get_d20(fd);
+     // NUL terminate request string
+    request[bytes_recvd] = '\0';
+
+    // Look for two newlines marking the end of the header
+    p = find_start_of_body(request);
+
+    if (p == NULL) {
+        printf("Could not find end of header\n");
+        exit(1);
     }
 
-    // Endpoint "/date"
-    else if (strcmp(request_path, "/date") == 0) {
-      get_date(fd);
+    // And here is the body
+    char *body = p;
+
+    /*
+    * Now that we've assessed the request, we can take actions.
+    */
+
+    // Read the three components of the first request line
+    sscanf(request, "%s %s %s", request_type, request_path,
+        request_protocol);
+
+    printf("REQUEST: %s %s %s\n", request_type, request_path, request_protocol);
+
+    if (strcmp(request_type, "GET") == 0) {
+
+        // Endpoint "/"
+        if (strcmp(request_path, "/") == 0) {
+            get_root(fd);
+        }
+
+        // Endpoint "/d20"
+        else if (strcmp(request_path, "/d20") == 0) {
+            get_d20(fd);
+        }
+
+        // Endpoint "/date"
+        else if (strcmp(request_path, "/date") == 0) {
+            get_date(fd);
+        }
+
+        else {
+            resp_404(fd, request_path);
+        }
+    }
+
+    else if (strcmp(request_type, "POST") == 0) {
+        // Endpoint "/save"
+        if (strcmp(request_path, "/save") == 0) {
+            post_save(fd, body);
+
+        } else {
+            resp_404(fd, request_path);
+        }
     }
 
     else {
-      resp_404(fd, request_path);
+        fprintf(stderr, "unknown request type \"%s\"\n", request_type);
+        return;
     }
-  }
-
-  else if (strcmp(request_type, "POST") == 0) {
-    // Endpoint "/save"
-    if (strcmp(request_path, "/save") == 0) {
-      post_save(fd, body);
-
-    } else {
-      resp_404(fd, request_path);
-    }
-  }
-
-  else {
-    fprintf(stderr, "unknown request type \"%s\"\n", request_type);
-    return;
-  }
 }
 
 /**
@@ -324,77 +324,77 @@ void handle_http_request(int fd)
  */
 int main(void)
 {
-  int newfd;  // listen on sock_fd, new connection on newfd
-  struct sockaddr_storage their_addr; // connector's address information
-  char s[INET6_ADDRSTRLEN];
+    int newfd;  // listen on sock_fd, new connection on newfd
+    struct sockaddr_storage their_addr; // connector's address information
+    char s[INET6_ADDRSTRLEN];
 
-  // Start reaping child processes
-  start_reaper();
+    // Start reaping child processes
+    start_reaper();
 
-  // Get a listening socket
-  int listenfd = get_listener_socket(PORT);
+    // Get a listening socket
+    int listenfd = get_listener_socket(PORT);
 
-  if (listenfd < 0) {
-    fprintf(stderr, "webserver: fatal error getting listening socket\n");
-    exit(1);
-  }
-
-  printf("webserver: waiting for connections on port %s...\n", PORT);
-
-  // This is the main loop that accepts incoming connections and
-  // fork()s a handler process to take care of it. The main parent
-  // process then goes back to waiting for new connections.
-  
-  while(1) {
-    socklen_t sin_size = sizeof their_addr;
-
-    // Parent process will block on the accept() call until someone
-    // makes a new connection:
-    newfd = accept(listenfd, (struct sockaddr *)&their_addr, &sin_size);
-    if (newfd == -1) {
-      perror("accept");
-      continue;
+    if (listenfd < 0) {
+        fprintf(stderr, "webserver: fatal error getting listening socket\n");
+        exit(1);
     }
 
-    // Print out a message that we got the connection
-    inet_ntop(their_addr.ss_family,
-      get_in_addr((struct sockaddr *)&their_addr),
-      s, sizeof s);
-    printf("server: got connection from %s\n", s);
+    printf("webserver: waiting for connections on port %s...\n", PORT);
+
+    // This is the main loop that accepts incoming connections and
+    // fork()s a handler process to take care of it. The main parent
+    // process then goes back to waiting for new connections.
     
-    // newfd is a new socket descriptor for the new connection.
-    // listenfd is still listening for new connections.
+    while(1) {
+        socklen_t sin_size = sizeof their_addr;
 
-    // For the non-fork() solution, remove this block of code and replace it with the one liner:
-    //
-    //     handle_http_request(newfd);
-    //
-    if (fork() == 0) {
-      // We're the child process
+        // Parent process will block on the accept() call until someone
+        // makes a new connection:
+        newfd = accept(listenfd, (struct sockaddr *)&their_addr, &sin_size);
+        if (newfd == -1) {
+            perror("accept");
+            continue;
+        }
 
-      // We don't need the listening socket. The parent
-      // process's listenfd is still open--we just close it in the
-      // child.
-      close(listenfd);
+        // Print out a message that we got the connection
+        inet_ntop(their_addr.ss_family,
+            get_in_addr((struct sockaddr *)&their_addr),
+            s, sizeof s);
+        printf("server: got connection from %s\n", s);
+        
+        // newfd is a new socket descriptor for the new connection.
+        // listenfd is still listening for new connections.
 
-      // This does the heavy lifting, recv() the HTTP request and
-      // send() the HTTP response.
-      handle_http_request(newfd);
+        // For the non-fork() solution, remove this block of code and replace it with the one liner:
+        //
+        //     handle_http_request(newfd);
+        //
+        if (fork() == 0) {
+            // We're the child process
 
-      // And this child is done! Bye bye!
-      exit(0);
+            // We don't need the listening socket. The parent
+            // process's listenfd is still open--we just close it in the
+            // child.
+            close(listenfd);
+
+            // This does the heavy lifting, recv() the HTTP request and
+            // send() the HTTP response.
+            handle_http_request(newfd);
+
+            // And this child is done! Bye bye!
+            exit(0);
+        }
+
+        // Parent process out here, still
+
+        // Parent doesn't need this. We need to close them as we get
+        // them so we don't fill up the parent's file descriptor table.
+        // The child's copy of newfd remains open.
+        close(newfd);
     }
 
-    // Parent process out here, still
+    // Unreachable code
 
-    // Parent doesn't need this. We need to close them as we get
-    // them so we don't fill up the parent's file descriptor table.
-    // The child's copy of newfd remains open.
-    close(newfd);
-  }
-
-  // Unreachable code
-
-  return 0;
+    return 0;
 }
 
