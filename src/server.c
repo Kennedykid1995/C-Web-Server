@@ -162,6 +162,8 @@ void resp_404(int fd)
     mime_type = mime_type_get(filepath);
 
     send_response(fd, "HTTP/1.1 404 NOT FOUND", mime_type, filedata->data, filedata->size);
+
+    file_free(filedata);
 }
 
 /**
@@ -193,6 +195,8 @@ void get_file(int fd, char *request_path)
     mime_type = mime_type_get(filepath);
 
     send_response(fd, "HTTP/1.1 200 OK",  mime_type, filedata->data, filedata->size);
+
+    file_free(filedata);
 }
 
 /**
