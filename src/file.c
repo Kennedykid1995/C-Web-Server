@@ -19,6 +19,11 @@ struct file_data *file_load(char *filename)
         return NULL;
     }
 
+    // Make sure it's a regular file
+    if (!(buf.st_mode & S_IFREG)) {
+        return NULL;
+    }
+
     // Open the file for reading
     FILE *fp = fopen(filename, "rb");
 

@@ -32,8 +32,13 @@
 #include <sys/file.h>
 #include <fcntl.h>
 #include "net.h"
+#include "file.h"
+#include "mime.h"
 
 #define PORT "3490"  // the port users will be connecting to
+
+#define SERVER_FILES "./serverfiles"
+#define SERVER_ROOT "./serverroot"
 
 /**
  * Handle SIGCHILD signal
@@ -88,7 +93,7 @@ void start_reaper(void)
  * 
  * Return the value from the send() function.
  */
-int send_response(int fd, char *header, char *content_type, char *body)
+int send_response(int fd, char *header, char *content_type, void *body, int content_length)
 {
     const int max_response_size = 65536;
     char response[max_response_size];
@@ -96,9 +101,6 @@ int send_response(int fd, char *header, char *content_type, char *body)
     // Get current time for the HTTP header
     time_t t1 = time(NULL);
     struct tm *ltime = localtime(&t1);
-
-    // How many bytes in the body
-    int content_length = strlen(body);
 
     int response_length = sprintf(response,
         "%s\n"
@@ -127,28 +129,6 @@ int send_response(int fd, char *header, char *content_type, char *body)
 
 
 /**
- * Send a 404 response
- */
-void resp_404(int fd, char *path)
-{
-    char response_body[1024];
-
-    sprintf(response_body, "404: %s not found", path);
-
-    send_response(fd, "HTTP/1.1 404 NOT FOUND", "text/html", response_body);
-}
-
-/**
- * Send a / endpoint response
- */
-void get_root(int fd)
-{
-    char *response_body = "<html><head></head><body><h1>Hello, World!</h1></body></html>\n";
-
-    send_response(fd, "HTTP/1.1 200 OK", "text/html", response_body);
-}
-
-/**
  * Send a /d20 endpoint response
  */
 void get_d20(int fd)
@@ -158,21 +138,61 @@ void get_d20(int fd)
     char response_body[8];
     sprintf(response_body, "%d\n", (rand()%20)+1);
 
-    send_response(fd, "HTTP/1.1 200 OK", "text/plain", response_body);
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain", response_body, strlen(response_body));
 }
 
 /**
- * Send a /date endpoint response
+ * Send a 404 response
  */
-void get_date(int fd)
+void resp_404(int fd)
 {
-    char response_body[128];
-    time_t t1 = time(NULL);
-    struct tm *gtime = gmtime(&t1);
+    char filepath[4096];
+    struct file_data *filedata; 
+    char *mime_type;
 
-    sprintf(response_body, "%s", asctime(gtime));
+    snprintf(filepath, sizeof filepath, "%s/404.html", SERVER_FILES);
+    filedata = file_load(filepath);
 
-    send_response(fd, "HTTP/1.1 200 OK", "text/plain", response_body);
+    if (filedata == NULL) {
+        // TODO: make this non-fatal
+        fprintf(stderr, "cannot find system 404 file\n");
+        exit(3);
+    }
+
+    mime_type = mime_type_get(filepath);
+
+    send_response(fd, "HTTP/1.1 404 NOT FOUND", mime_type, filedata->data, filedata->size);
+}
+
+/**
+ * Read and return a file
+ */
+void get_file(int fd, char *request_path)
+{
+    char filepath[4096];
+    struct file_data *filedata; 
+    char *mime_type;
+
+    // Try to find the file
+    snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
+    filedata = file_load(filepath);
+
+    if (filedata == NULL) {
+        // If we can't find it, try with an index.html on the end
+        snprintf(filepath, sizeof filepath, "%s%s/index.html", SERVER_ROOT, request_path);
+        filedata = file_load(filepath);
+
+        if (filedata == NULL) {
+            resp_404(fd);
+            return;
+        }
+    }
+
+    // At this point, we've loaded a file from somewhere or died trying
+
+    mime_type = mime_type_get(filepath);
+
+    send_response(fd, "HTTP/1.1 200 OK",  mime_type, filedata->data, filedata->size);
 }
 
 /**
@@ -211,7 +231,7 @@ void post_save(int fd, char *body)
 
     sprintf(response_body, "{\"status\": \"%s\"}\n", status);
 
-    send_response(fd, "HTTP/1.1 200 OK", "application/json", response_body);
+    send_response(fd, "HTTP/1.1 200 OK", "application/json", response_body, strlen(response_body));
 }
 
 /**
@@ -283,23 +303,12 @@ void handle_http_request(int fd)
 
     if (strcmp(request_type, "GET") == 0) {
 
-        // Endpoint "/"
-        if (strcmp(request_path, "/") == 0) {
-            get_root(fd);
-        }
-
-        // Endpoint "/d20"
-        else if (strcmp(request_path, "/d20") == 0) {
+        if (strcmp(request_path, "/d20") == 0) {
+            // Handle any programmatic endpoints here
             get_d20(fd);
-        }
-
-        // Endpoint "/date"
-        else if (strcmp(request_path, "/date") == 0) {
-            get_date(fd);
-        }
-
-        else {
-            resp_404(fd, request_path);
+        } else {
+            // Otherwise try to get a file
+            get_file(fd, request_path);
         }
     }
 
@@ -309,7 +318,7 @@ void handle_http_request(int fd)
             post_save(fd, body);
 
         } else {
-            resp_404(fd, request_path);
+            resp_404(fd);
         }
     }
 
