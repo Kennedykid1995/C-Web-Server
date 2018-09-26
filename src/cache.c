@@ -161,11 +161,11 @@ struct cache_entry *cache_get(struct cache *cache, char *path)
     ce = hashtable_get(cache->index, path);
 
     if (ce == NULL) {
-        printf("Miss %s\n", path);
+        //printf("Miss %s\n", path);
         return NULL;
     }
 
-    printf("Hit %s: %s, %d: %*s\n", path, ce->content_type, ce->content_length, ce->content_length, ce->content);
+    //printf("Hit %s: %s, %d: %*s\n", path, ce->content_type, ce->content_length, ce->content_length, ce->content);
 
     // Move to the head of the list
     dllist_move_to_head(cache, ce);
