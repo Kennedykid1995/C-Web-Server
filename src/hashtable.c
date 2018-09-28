@@ -1,3 +1,40 @@
+/*
+
+Example:
+
+// Create a hash table of 128 elements and use the default hash function
+
+struct hashtable *ht = hashtable_create(128, NULL);
+
+int data1 = 12;
+int data2 = 30;
+
+// Store pointers to data in the hash table
+// (Data can be pointers to any type of data)
+
+hashtable_put(ht, "some data", &data1);
+hashtable_put(ht, "other data", &data2);
+
+// Retrieve data
+
+int *result = hashtable_get(ht, "other data");
+printf("%d\n", *r1); // prints 30
+
+// Store a struct:
+
+struct foo *p = malloc(sizeof *p);
+
+p->bar = 12;
+p->baz = "Hello";
+
+hashtable_put(ht, "mystruct", p);
+
+struct foo *q = hashtable_get("mystruct");
+
+printf("%d %s\n", q->bar, q->baz); // 12 Hello
+
+*/
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -7,6 +44,7 @@
 #define DEFAULT_SIZE 128
 #define DEFAULT_GROW_FACTOR 2
 
+// Hash table entry
 struct htent {
     void *key;
     int key_size;
@@ -14,6 +52,7 @@ struct htent {
     void *data;
 };
 
+// Used to cleanup the linked lists
 struct foreach_callback_payload {
 	void *arg;
 	void (*f)(void *, void *);
