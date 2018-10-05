@@ -29,16 +29,12 @@ struct cache_entry *alloc_entry(char *path, char *content_type, void *content, i
 /**
  * Deallocate a cache entry
  */
-void free_entry(void *v_ent, void *varg)
+void free_entry(struct cache_entry *entry)
 {
-    struct cache_entry *ent = v_ent;
-
-    (void)varg; // unused
-
-    free(ent->content_type);
-    free(ent->content);
-    free(ent->path);
-    free(ent);
+    free(entry->content_type);
+    free(entry->content);
+    free(entry->path);
+    free(entry);
 }
 
 /**
@@ -109,7 +105,7 @@ void clean_lru(struct cache *cache)
         struct cache_entry *oldtail = dllist_remove_tail(cache);
 
         hashtable_delete(cache->index, oldtail->path);
-        free_entry(oldtail, NULL);
+        free_entry(oldtail);
     }
 }
 
@@ -129,6 +125,27 @@ struct cache *cache_create(int max_size, int hashsize)
     cache->cur_size = 0;
 
     return cache;
+}
+
+/**
+ * Deallocate a pre-existing cache
+ * Frees all entries from the hashtable and deallocates the hashtable
+ * Frees all entries from the doubly-linked list
+ * Deallocates the cache
+ */
+void cache_free(struct cache *cache)
+{
+    struct cache_entry *cur_entry = cache->head;
+
+    hashtable_destroy(cache->index);
+
+    while (cur_entry != NULL) {
+        struct cache_entry *next_entry = cur_entry->next;
+
+        free_entry(cur_entry);
+
+        cur_entry = next_entry;
+    }
 }
 
 /**

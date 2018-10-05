@@ -20,6 +20,7 @@ struct cache {
 };
 
 extern struct cache *cache_create(int max_size, int hashsize);
+extern void cache_free(struct cache *cache);
 extern void cache_put(struct cache *cache, char *path, char *content_type, void *content, int content_length);
 extern struct cache_entry *cache_get(struct cache *cache, char *path);
 extern int cache_remove(struct cache *cache, char *path);

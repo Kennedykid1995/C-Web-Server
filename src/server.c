@@ -5,7 +5,7 @@
  * 
  *    curl -D - http://localhost:3490/
  *    curl -D - http://localhost:3490/d20
- *    curl -D - http://localhost:3490/date
+ *    curl -D - http://localhost:3490/index.html
  * 
  * You can also test the above URLs in your browser! They should work!
  * 
@@ -42,9 +42,11 @@
 /**
  * Send an HTTP response
  *
- * header:       "HTTP/1.1 404 NOT FOUND" or "HTTP/1.1 200 OK", etc.
- * content_type: "text/plain", etc.
- * body:         the data to send.
+ * fd:             The file descriptor of the socket to send the response through.
+ * header:         "HTTP/1.1 404 NOT FOUND" or "HTTP/1.1 200 OK", etc.
+ * content_type:   "text/plain", etc.
+ * body:           The data to send.
+ * content_length: The length of the data in the body.
  * 
  * Return the value from the send() function.
  */
