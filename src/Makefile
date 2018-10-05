@@ -28,3 +28,30 @@ llist.o: llist.c llist.h
 
 clean:
 	rm -f $(OBJS)
+	rm -rf build $(TESTS)
+	rm -f cache_tests/tests.log
+
+TEST_SRC=$(wildcard cache_tests/*_tests.c)
+TESTS=$(patsubst %.c,%,$(TEST_SRC))
+
+TARGET=build/server.a
+SO_TARGET=$(patsubst %.a,%.so,$(TARGET))
+
+test:
+	tests
+
+tests:
+	clean $(TARGET) $(SO_TARGET) tests2
+
+dev: CFLAGS=-g -std=c99 -Wall -Isrc -Wall -Wextra %(OPTFLAGS)
+dev: all
+
+build:
+	@mkdir -p build
+	@mkdir -p bin
+
+.PHONY: tests
+
+tests2: $(TESTS)
+	sh ./cache_tests/runtests.sh
+
