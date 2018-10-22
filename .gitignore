@@ -4,3 +4,4 @@
 src/server
 src/data.txt
 *.o
+.DS_Store

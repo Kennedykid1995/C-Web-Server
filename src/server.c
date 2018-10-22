@@ -186,6 +186,41 @@ void get_file(int fd, struct cache *cache, char *request_path)
 }
 
 /**
+ * Read and return a file without reading from cache
+ * or storing the fetched file in the cache
+ */
+// void get_file(int fd, struct cache *cache, char *request_path)
+// {
+//     char filepath[4096];
+
+//     struct file_data *filedata; 
+//     char *mime_type;
+
+//     // Try to find the file
+//     snprintf(filepath, sizeof(filepath), "%s%s", SERVER_ROOT, request_path);
+    
+//     filedata = file_load(filepath);
+
+//     if (filedata == NULL) {
+//         // Handle the case where user just typed in `/` as the path
+//         // Serve the index.html page
+//         snprintf(filepath, sizeof filepath, "%s%s/index.html", SERVER_ROOT, request_path);
+//         filedata = file_load(filepath);
+
+//         if (filedata == NULL) {
+//             resp_404(fd);
+//             return;
+//         }
+//     }
+
+//     mime_type = mime_type_get(filepath);
+
+//     send_response(fd, "HTTP/1.1 200 OK",  mime_type, filedata->data, filedata->size);
+
+//     file_free(filedata);
+// }
+
+/**
  * Post /save endpoint data
  */
 void post_save(int fd, char *body)
